@@ -53,6 +53,53 @@ void getOSinfo(char* buffer, size_t size) {
     }
 }
 
+void getCPUinfo(char* buffer, size_t size)
+{
+    HKEY hKey;
+    char CPUName[256] = {0};
+    DWORD buffer_size = sizeof(CPUName);
+
+    if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0", 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
+        RegQueryValueExA(hKey, "ProcessorNameString", NULL, NULL, (LPBYTE)CPUName, &buffer_size);
+
+        snprintf(buffer, size, "%s", CPUName);
+        RegCloseKey(hKey);
+    } else {
+        snprintf(buffer, size, "Unknown");
+    }
+}
+
+void getRAMinfo(char* buffer, size_t size)
+{
+    MEMORYSTATUSEX statex;
+    statex.dwLength = sizeof(statex);
+    GlobalMemoryStatusEx(&statex);
+
+    // Convert bytes to MiB
+    unsigned long long totalMiB = statex.ullTotalPhys / (1024 * 1024);
+    unsigned long long usedMiB = (statex.ullTotalPhys - statex.ullAvailPhys) / (1024 * 1024);
+
+    snprintf(buffer, size, "%lluMiB / %lluMiB", usedMiB, totalMiB);
+}
+
+void getUptime(char* buffer, size_t size) 
+{
+    ULONGLONG uptime_ms = GetTickCount64();
+
+    // Convert ms to days, hours, minutes
+    int days = uptime_ms / (1000 * 60 * 60 * 24);
+    int hours = uptime_ms / (1000 * 60 * 60) % 24;
+    int mins = uptime_ms / (1000 * 60) % 60;
+
+    if (days > 0) {
+        snprintf(buffer, size, "%d days, %d hours, %d mins", days, hours, mins);
+    } else if (hours > 0) {
+        snprintf(buffer, size, "%d hours, %d mins", hours, mins);
+    } else {
+        snprintf(buffer, size, "%d mins", mins);
+    }
+}
+
 void printInfo() {
     // Logo
     char* logo[] =  {
@@ -92,21 +139,34 @@ void printInfo() {
     seperator[seplen] = '\0';
 
     // Get OS information
-    char os_info[256];
-    getOSinfo(os_info, sizeof(os_info));
+    char OSinfo[256];
+    getOSinfo(OSinfo, sizeof(OSinfo));
+
+    // Get CPU info
+    char CPUinfo[256];
+    getCPUinfo(CPUinfo, sizeof(CPUinfo));
+
+    // Get RAM info
+    char RAMinfo[256];
+    getRAMinfo(RAMinfo, sizeof(RAMinfo));
+
+    // Get uptime info
+    char Uptime[256];
+    getUptime(Uptime, sizeof(Uptime));
 
     // Print information lines out
     snprintf(info[0], username_len + computername_len, "\033[34m%s@%s\033[0m", username, computername);
     snprintf(info[1], 256, "%s", seperator);
-    sprintf(info[2], "\033[1;32mOS:\033[0m %s", os_info);
-    sprintf(info[3], "\033[1;32mUptime:\033[0m");
-    sprintf(info[4], "\033[1;32mCPU:\033[0m");
-    sprintf(info[5], "\033[1;32mRAM:\033[0m");
+    sprintf(info[2], "\033[1;32mOS:\033[0m %s", OSinfo);
+    sprintf(info[3], "\033[1;32mUptime:\033[0m %s", Uptime);
+    sprintf(info[4], "\033[1;32mCPU:\033[0m %s", CPUinfo);
+    sprintf(info[5], "\033[1;32mRAM:\033[0m %s", RAMinfo);
     sprintf(info[6], "\033[1;32m\033[0m");
     sprintf(info[7], "\033[1;32m\033[0m");
 
     for (int i = 0; i < 8; i++) {
         printf("\033[1;34m%-40s\033[0m    %s\n", logo[i], info[i]);
+        Sleep(75);
     }
 }
 
