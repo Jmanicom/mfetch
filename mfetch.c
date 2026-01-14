@@ -8,7 +8,7 @@ more C by using I/O, malloc, etc.
 #include <stdio.h>
 #include <windows.h>
 
-void printOS() {
+void getOSinfo(char* buffer, size_t size) {
     HKEY hKey;
     char product_name[256] = {0};
     char display_version[256] = {0};
@@ -46,22 +46,21 @@ void printOS() {
             }
         }
         
-        printf("OS: %s %s (Build %s)\n", product_name, display_version, current_build);
-        
+        snprintf(buffer, size, "%s %s (Build %s)", product_name, display_version, current_build);
         RegCloseKey(hKey);
     } else {
-        printf("OS: Unable to read version info\n");
+        snprintf(buffer, size, "Uknown");
     }
 }
 
 void printInfo() {
     // Logo
     char* logo[] =  {
-        "\033[034m            ___      _       _   \033[0m",
-        "\033[034m      /\\/\\ /  _| ___| |_ ___| |__\033[0m",
-        "\033[034m     /    \\| |_ / _ \\ __/ __| '_  \\ \033[0m",
-        "\033[034m    / /\\/\\ \\  _|  __/ || (__| | | |\033[0m",
-        "\033[034m    \\/    \\/_|  \\___|\\__\\___|_| |_|\033[0m",
+        "            ___      _       _   ",
+        "      /\\/\\ /  _| ___| |_ ___| |__",
+        "     /    \\| |_ / _ \\ __/ __| '_  \\",
+        "    / /\\/\\ \\  _|  __/ || (__| | | |",
+        "    \\/    \\/_|  \\___|\\__\\___|_| |_|",
         "",
         "",
         "",
@@ -83,28 +82,32 @@ void printInfo() {
     // Get computername
     GetComputerNameA(computername, &computername_len);
 
+    // Information lines
+    char info[8][256] = {0}; // Array of 8 strings, each up to 256 char
+
     // Create '=========' to length based on username + computername
     int seplen = strlen(username) + strlen(computername) + 1;
     char seperator[256];
     memset(seperator, '=', seplen);
     seperator[seplen] = '\0';
 
-    // Information lines
-    char info[8][256]; // Array of 8 strings, each up to 256 char
+    // Get OS information
+    char os_info[256];
+    getOSinfo(os_info, sizeof(os_info));
 
-    sprintf(info[0], "\033[34m%s@%s\033[0m", username, computername);
+    // Print information lines out
+    snprintf(info[0], username_len + computername_len, "\033[34m%s@%s\033[0m", username, computername);
     snprintf(info[1], 256, "%s", seperator);
-    sprintf(info[2], "\033[1;36mOS:\033[0m Getting info...");
-    sprintf(info[3], "\033[1;36m\033[0m");
-    sprintf(info[4], "\033[1;36m\033[0m");
-    sprintf(info[5], "\033[1;36m\033[0m");
-    sprintf(info[6], "\033[1;36m\033[0m");
-    sprintf(info[7], "\033[1;36m\033[0m");
+    sprintf(info[2], "\033[1;32mOS:\033[0m %s", os_info);
+    sprintf(info[3], "\033[1;32mUptime:\033[0m");
+    sprintf(info[4], "\033[1;32mCPU:\033[0m");
+    sprintf(info[5], "\033[1;32mRAM:\033[0m");
+    sprintf(info[6], "\033[1;32m\033[0m");
+    sprintf(info[7], "\033[1;32m\033[0m");
 
     for (int i = 0; i < 8; i++) {
-        printf("%-50s %s\n", logo[i], info[i]);
+        printf("\033[1;34m%-40s\033[0m    %s\n", logo[i], info[i]);
     }
-
 }
 
 int main()
